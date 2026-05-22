@@ -1,11 +1,6 @@
 {
   "buildCommand": "pnpm install && pnpm vite build",
   "outputDirectory": "dist",
-  "functions": {
-    "api/index.ts": {
-      "runtime": "@vercel/node@3"
-    }
-  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
