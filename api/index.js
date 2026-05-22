@@ -3,6 +3,17 @@ export default async function handler(req, res) {
   const method = req.method || 'GET';
   const pathname = url.pathname;
 
+  // 解析请求体
+  let body = {};
+  if (['POST', 'PATCH', 'PUT'].includes(method)) {
+    try {
+      const chunks = [];
+      for await (const chunk of req) chunks.push(chunk);
+      const raw = Buffer.concat(chunks).toString();
+      if (raw) body = JSON.parse(raw);
+    } catch { body = {}; }
+  }
+
   res.setHeader('Content-Type', 'application/json');
 
   const SUPABASE_URL = process.env.SUPABASE_URL || '';
@@ -74,15 +85,19 @@ export default async function handler(req, res) {
 
     // 提交
     if (pathname === '/api/bookings' && method === 'POST') {
-      const { name, phone, experience, booking_date, message } = req.body || {};
+      const { name, phone, experience, booking_date, message } = body;
       if (!name || !phone || !experience) {
         return res.status(400).json({ error: '请填写必填字段' });
       }
       const r = await fetch(`${API}/dive_bookings`, {
         method: 'POST',
-        headers: HEADERS,
+        headers: { ...HEADERS, Prefer: 'return=representation' },
         body: JSON.stringify({ name, phone, experience, booking_date: booking_date || null, message: message || '' }),
       });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        return res.status(500).json({ error: err.message || 'Supabase 写入失败' });
+      }
       const data = await r.json();
       return res.status(200).json({ success: true, message: '预订成功！我们将尽快与您联系', data });
     }
@@ -91,7 +106,7 @@ export default async function handler(req, res) {
     if (pathname.startsWith('/api/bookings/') && method === 'PATCH') {
       const id = pathname.split('/').pop();
       if (!id || isNaN(Number(id))) return res.status(400).json({ error: '无效的ID' });
-      const { status, remark } = req.body || {};
+      const { status, remark } = body;
       const updates = {};
       if (status) updates.status = status;
       if (remark !== undefined) updates.remark = remark;
