@@ -2,6 +2,7 @@
   "buildCommand": "pnpm install && pnpm vite build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

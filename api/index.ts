@@ -1,19 +1,25 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+function getSupabase() {
+  const url = process.env.SUPABASE_URL || '';
+  const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || '';
+  if (!url || !key) {
+    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY');
+  }
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
   const { pathname } = new URL(req.url || '/', 'http://localhost');
   const method = req.method || 'GET';
 
   res.setHeader('Content-Type', 'application/json');
 
   try {
+    const supabase = getSupabase();
+
     // 健康检查
     if (pathname === '/api/health' && method === 'GET') {
       return res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -110,11 +116,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { error } = await supabase.from('dive_bookings').delete().eq('id', id);
       if (error) return res.status(404).json({ error: '未找到该预订' });
       return res.status(200).json({ success: true, message: '预订已删除' });
-    }
-
-    // hello
-    if (pathname === '/api/hello' && method === 'GET') {
-      return res.status(200).json({ message: 'Hello from Vercel!', timestamp: new Date().toISOString() });
     }
 
     return res.status(404).json({ error: 'Not found' });
