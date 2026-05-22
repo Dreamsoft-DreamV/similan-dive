@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const url = new URL(req.url || '/', 'http://localhost');
   const method = req.method || 'GET';
   const pathname = url.pathname;
@@ -35,6 +35,7 @@ export default async function handler(req, res) {
     if (opts.eq) for (const [c, v] of opts.eq) query += `&${c}=eq.${encodeURIComponent(v)}`;
     if (opts.limit) query += `&limit=${opts.limit}`;
     const r = await fetch(query, { headers: HEADERS });
+    if (!r.ok) throw new Error(`Supabase query failed: ${r.status}`);
     const data = await r.json();
     return data;
   }
